@@ -18,7 +18,7 @@ const Home: NextPage = () => {
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     refetchOnMount: false,
-    queryKey: ['repoData'],
+    queryKey: ['foxfloof'],
     queryFn: () =>
       fetch('https://randomfox.ca/floof').then(async (res) => {
         const data = await res.json()

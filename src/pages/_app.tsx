@@ -11,12 +11,17 @@ import Head from 'next/head'
 import Navbar from '@/components/Navbar'
 import Image from 'next/image'
 
+import { moonPhase } from '@/utils/moon'
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 const queryClient = new QueryClient()
 
 export default function App({ Component, pageProps }: AppProps) {
   const audioRef = useRef<HTMLAudioElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const [moonIcon, setMoonIcon] = useState('mdi:moon-waxing-crescent')
+
   const [ready, setReady] = useState(false)
   const [logoHovered, setLogoHovered] = useState(false)
 
@@ -27,6 +32,16 @@ export default function App({ Component, pageProps }: AppProps) {
     scale: 1.2,
     x: 0,
     y: 0,
+  }))
+
+  const introRef = useRef<HTMLDivElement>(null)
+
+  const [introSpring, introSpringApi] = useSpring(() => ({
+    opacity: 0,
+    x: 0,
+    y: 0,
+    'z-index': 1,
+    display: 'none',
   }))
 
   const [navbarSpring, navbarSpringApi] = useSpring(() => ({
@@ -109,6 +124,19 @@ export default function App({ Component, pageProps }: AppProps) {
       }
     }
   }, [worgenLeftSpringApi])
+
+  useEffect(() => {
+    if (localStorage.getItem('visited')) {
+      setReady(true)
+      return
+    }
+    introSpringApi.start({
+      opacity: 1,
+      x: 0,
+      y: 0,
+      display: 'block',
+    })
+  }, [introSpringApi])
 
   useEffect(() => {
     const isVisited = localStorage.getItem('visited')
@@ -286,6 +314,30 @@ export default function App({ Component, pageProps }: AppProps) {
                   clamp: true,
                 },
                 onRest: () => {
+                  if (audioRef.current) {
+                    audioRef.current.currentTime = 1
+                    audioRef.current.volume = 0
+                    audioRef.current
+                      .play()
+                      .then(() => {
+                        console.log('playing')
+                      })
+                      .catch((e) => {
+                        console.log(e)
+                      })
+
+                    const raiseVolume = setInterval(() => {
+                      if (
+                        audioRef &&
+                        audioRef.current &&
+                        audioRef.current.volume < 0.1
+                      ) {
+                        audioRef.current.volume += 0.01
+                      } else {
+                        clearInterval(raiseVolume)
+                      }
+                    }, 100)
+                  }
                   lightningSpringApi.start({
                     opacity: 0,
                     config: {
@@ -317,6 +369,37 @@ export default function App({ Component, pageProps }: AppProps) {
     navbarSpringApi,
     contentSpringApi,
   ])
+
+  useEffect(() => {
+    switch (moonPhase) {
+      case 0:
+        setMoonIcon('mdi:moon-new')
+        break
+      case 1:
+        setMoonIcon('mdi:moon-waxing-crescent')
+        break
+      case 2:
+        setMoonIcon('mdi:moon-first-quarter')
+        break
+      case 3:
+        setMoonIcon('mdi:moon-waxing-gibbous')
+        break
+      case 4:
+        setMoonIcon('mdi:moon-full')
+        break
+      case 5:
+        setMoonIcon('mdi:moon-waning-gibbous')
+        break
+      case 6:
+        setMoonIcon('mdi:moon-last-quarter')
+        break
+      case 7:
+        setMoonIcon('mdi:moon-waning-crescent')
+        break
+      default:
+        setMoonIcon('mdi:moon-new')
+    }
+  }, [setMoonIcon])
 
   const logoTransition = useTransition(logoHovered, {
     from: { opacity: 0 },
@@ -381,10 +464,9 @@ export default function App({ Component, pageProps }: AppProps) {
         </audio>
         <div className="fixed h-full w-full bg-zinc-900" />
         <a.video
+          preload="auto"
           style={videoSpring}
-          onPlay={() => {
-            setReady(true)
-          }}
+          ref={videoRef}
           loop
           autoPlay
           muted
@@ -427,6 +509,42 @@ export default function App({ Component, pageProps }: AppProps) {
         </a.div>
         <div className="vignette fixed h-full w-full bg-zinc-900/20" />
         <a.div
+          style={introSpring}
+          ref={introRef}
+          className="fixed grid h-full w-full items-center justify-center gap-4 text-center"
+        >
+          <button
+            onClick={() => {
+              introRef.current?.classList.add('z-[-999]')
+              setReady(true)
+            }}
+            className="my-8 mr-2 rounded-lg bg-zinc-800 p-2 text-zinc-300"
+          >
+            <Icon
+              icon="material-symbols:play-arrow"
+              className="inline"
+              width={24}
+            />
+            <span className="relative top-[0.05rem]">Play Intro</span>
+          </button>
+          <span className="text-zinc-300">or</span>
+          <button
+            onClick={() => {
+              introRef.current?.classList.add('z-[-999]')
+              localStorage.setItem('visited', 'true')
+              setReady(true)
+            }}
+            className="ml-2 rounded-lg bg-zinc-800 p-2 text-zinc-300"
+          >
+            <Icon
+              icon="material-symbols:skip-next"
+              className="inline"
+              width={24}
+            />
+            <span className="relative top-[0.05rem]">Skip Intro</span>
+          </button>
+        </a.div>
+        <a.div
           style={logoSpring}
           className="absolute left-0 right-0 m-auto my-2 h-16 w-16 rounded-lg bg-zinc-900/50 p-2 backdrop-blur-lg"
         >
@@ -451,7 +569,7 @@ export default function App({ Component, pageProps }: AppProps) {
               ) : (
                 <a.div className="absolute" style={style}>
                   <Icon
-                    icon="mdi:moon-and-stars"
+                    icon={moonIcon}
                     width={48}
                     height={48}
                     className="inline text-zinc-200"
