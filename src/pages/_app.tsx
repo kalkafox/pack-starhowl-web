@@ -473,7 +473,7 @@ export default function App({ Component, pageProps }: AppProps) {
           className="fixed h-full w-full object-cover blur-sm"
         >
           <source
-            src="https://db17gxef1g90a.cloudfront.net/vid/2.mp4"
+            src="https://db17gxef1g90a.cloudfront.net/vid/1.mp4"
             type="video/mp4"
           />
         </a.video>
